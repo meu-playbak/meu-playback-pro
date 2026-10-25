@@ -87,8 +87,7 @@ if uploaded is not None:
                         "--out", str(separated_dir),
                         str(wav_input),
                     ], env=env)
-
-                                    stems_dir = separated_dir / "htdemucs" / wav_input.stem
+                    stems_dir = separated_dir / "htdemucs" / wav_input.stem
 
                     nomes = {
                         "Voz": "vocals.wav",
