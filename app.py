@@ -376,8 +376,8 @@ if uploaded is not None:
                         sf.write(output_path, mix, sr, subtype="PCM_16")
                         audio_bytes = output_path.read_bytes()
 
-                      st.markdown("### 🎉 Seu playback está pronto!")
-                      st.success("Ouça o resultado abaixo ou baixe o arquivo para seu dispositivo.")
+                                            st.markdown("### 🎉 Seu playback está pronto!")
+                        st.success("Ouça o resultado abaixo ou baixe o arquivo para seu dispositivo.")
                         st.audio(audio_bytes, format="audio/wav")
                         st.download_button(
                           "⬇️ Baixar meu playback",
