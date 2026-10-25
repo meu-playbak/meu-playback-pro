@@ -21,13 +21,119 @@ st.set_page_config(
     page_icon="🎵",
     layout="centered",
 )
+<CodeBlock language="python" editable>
+st.markdown("""
+<style>
+/* Fundo e largura da página */
+.stApp {
+    background: linear-gradient(180deg, #101326 0%, #191b35 100%);
+    color: #f7f7ff;
+}
 
-st.title("🎵 Meu Playback Pro")
-st.write("Crie seu playback, controle os instrumentos e adicione outro áudio.")
+
+.block-container {
+max-width: 850px;
+padding-top: 2rem;
+padding-bottom: 3rem;
+}
+
+/* Títulos */
+h1, h2, h3 {
+color: #ffffff !important;
+letter-spacing: -0.5px;
+}
+
+/* Cartões de avisos */
+div[data-testid="stAlert"] {
+border-radius: 14px;
+border: 1px solid #393d65;
+}
+
+/* Campos para enviar áudio */
+div[data-testid="stFileUploader"] {
+background: #20233f;
+border: 1px dashed #7779bc;
+border-radius: 14px;
+padding: 12px;
+}
+
+/* Botões */
+.stButton > button,
+.stDownloadButton > button {
+width: 100%;
+min-height: 48px;
+border-radius: 12px;
+border: none;
+background: linear-gradient(90deg, #7665f7, #a15cf5);
+color: white;
+font-weight: 700;
+transition: 0.2s ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+border: 1px solid #ffffff;
+color: white;
+filter: brightness(1.1);
+}
+
+/* Caixas e controles */
+div[data-testid="stExpander"] {
+border: 1px solid #393d65;
+border-radius: 12px;
+}
+
+div[data-testid="stAudio"] {
+width: 100%;
+border-radius: 12px;
+}
+
+/* Espaçamento em celulares */
+@media (max-width: 600px) {
+.block-container {
+padding: 1rem 0.8rem 2rem 0.8rem;
+}
+
+h1 {
+font-size: 1.8rem !important;
+}
+}
+</style>
+""", unsafe_allow_html=True)
+</CodeBlock>
+
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #292c56, #54358a);
+    padding: 28px 22px;
+    border-radius: 20px;
+    margin-bottom: 22px;
+    border: 1px solid #6560a5;
+">
+    <div style="font-size: 38px;">🎵</div>
+    <div style="
+        font-size: 30px;
+        font-weight: 800;
+        color: white;
+        margin-top: 6px;
+    ">Meu Playback Pro</div>
+    <div style="
+        font-size: 15px;
+        color: #e5e2ff;
+        margin-top: 8px;
+        line-height: 1.6;
+    ">
+        Seu som, do seu jeito.<br>
+        Crie playbacks, controle instrumentos e misture áudios.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.info(
-    "Na hospedagem gratuita, teste primeiro com músicas de 1 a 3 minutos. "
-    "O processamento pode demorar e consumir bastante memória."
+    "💡 Dica: teste primeiro com músicas de 1 a 3 minutos. "
+    "O processamento pode demorar na hospedagem gratuita."
 )
+
 
 tipos_audio = ["mp3", "wav", "flac", "m4a", "ogg", "aac"]
 
