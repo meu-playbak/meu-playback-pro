@@ -1,3 +1,4 @@
+
 import os
 import subprocess
 import sys
@@ -9,20 +10,34 @@ import numpy as np
 import soundfile as sf
 import streamlit as st
 
-# Reduz o paralelismo para tentar evitar picos de uso de CPU no servidor gratuito.
 THREADS = "2"
 os.environ["OMP_NUM_THREADS"] = THREADS
 os.environ["MKL_NUM_THREADS"] = THREADS
 os.environ["OPENBLAS_NUM_THREADS"] = THREADS
 os.environ["NUMEXPR_NUM_THREADS"] = THREADS
 
-st.set_page_config(page_title="Meu Playback Pro", page_icon="🎵", layout="centered")
-st.title("🎵 Meu Playback Pro")
-st.write("Envie uma música para criar uma versão sem bateria.")
-st.info("Para ajudar o servidor gratuito, teste primeiro com um trecho de 1 a 3 minutos. Músicas longas podem demorar ou atingir os limites da hospedagem.")
+st.set_page_config(
+    page_title="Meu Playback Pro",
+    page_icon="🎵",
+    layout="centered",
+)
 
-uploaded = st.file_uploader("Escolha um arquivo de áudio", type=["mp3", "wav", "flac", "m4a", "ogg", "aac"])
-st.subheader("🎚️ Escolha os instrumentos")
+st.title("🎵 Meu Playback Pro")
+st.write("Crie seu playback, controle os instrumentos e adicione outro áudio.")
+st.info(
+    "Na hospedagem gratuita, teste primeiro com músicas de 1 a 3 minutos. "
+    "O processamento pode demorar e consumir bastante memória."
+)
+
+tipos_audio = ["mp3", "wav", "flac", "m4a", "ogg", "aac"]
+
+uploaded = st.file_uploader(
+    "Escolha a música principal",
+    type=tipos_audio,
+    key="musica_principal",
+)
+
+st.subheader("🎚️ Escolha os instrumentos que deseja manter")
 
 manter = {
     "Voz": st.checkbox("Manter voz", value=True),
@@ -44,6 +59,39 @@ volumes = {
     ),
 }
 
+st.subheader("🎸 Adicionar outro instrumento")
+
+instrumento_extra = st.file_uploader(
+    "Envie o áudio do instrumento adicional (opcional)",
+    type=tipos_audio,
+    key="instrumento_extra",
+)
+
+volume_extra = st.slider(
+    "Volume do instrumento adicionado",
+    min_value=0.0,
+    max_value=2.0,
+    value=1.0,
+    step=0.1,
+)
+
+inicio_extra = st.slider(
+    "Quando o instrumento deve começar? (segundos)",
+    min_value=0,
+    max_value=600,
+    value=0,
+    step=1,
+    help="0 significa começar junto com a música. "
+         "Por exemplo, 30 significa entrar após 30 segundos.",
+)
+
+if instrumento_extra is not None:
+    st.audio(instrumento_extra)
+    st.caption(
+        f"O instrumento entrará após {inicio_extra} segundo(s)."
+    )
+
+
 def run_command(command, env=None):
     result = subprocess.run(
         command,
@@ -54,98 +102,194 @@ def run_command(command, env=None):
         env=env,
     )
     if result.returncode != 0:
-        raise RuntimeError((result.stderr or result.stdout or "Erro sem detalhes")[-5000:])
+        raise RuntimeError(
+            (result.stderr or result.stdout or "Erro sem detalhes")[-5000:]
+        )
     return result
+
 
 if uploaded is not None:
     st.audio(uploaded)
-    if st.button("Remover bateria", type="primary"):
-        with st.spinner("Separando os instrumentos. Isso pode levar alguns minutos..."):
-            try:
-                with tempfile.TemporaryDirectory(prefix="meu_playback_") as temp_name:
-                    work = Path(temp_name)
-                    suffix = Path(uploaded.name).suffix.lower() or ".audio"
-                    original = work / f"entrada{suffix}"
-                    original.write_bytes(uploaded.getvalue())
 
-                    wav_input = work / "entrada_convertida.wav"
-                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-                    run_command([
-                        ffmpeg_exe, "-hide_banner", "-loglevel", "error", "-y",
-                        "-i", str(original), "-vn", "-ac", "2", "-ar", "44100",
-                        "-c:a", "pcm_s16le", str(wav_input)
-                    ])
+    if st.button("🎵 Criar meu playback", type="primary"):
+        if not any(manter.values()):
+            st.error("Selecione pelo menos um instrumento para manter.")
+        else:
+            with st.spinner(
+                "Processando os áudios. Isso pode levar alguns minutos..."
+            ):
+                try:
+                    with tempfile.TemporaryDirectory(
+                        prefix="meu_playback_"
+                    ) as temp_name:
+                        work = Path(temp_name)
+                        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
-                    separated_dir = work / "separado"
-                    env = os.environ.copy()
-                    run_command([
-                        sys.executable, "-m", "demucs",
-                        "-n", "htdemucs",
-                        "--device", "cpu",
-                        "--shifts", "1",
-                        "--overlap", "0.1",
-                        "--out", str(separated_dir),
-                        str(wav_input),
-                    ], env=env)
-                    stems_dir = separated_dir / "htdemucs" / wav_input.stem
+                        # Salva e converte a música principal.
+                        suffix = (
+                            Path(uploaded.name).suffix.lower() or ".audio"
+                        )
+                        original = work / f"entrada{suffix}"
+                        original.write_bytes(uploaded.getvalue())
 
-                    nomes = {
-                        "Voz": "vocals.wav",
-                        "Bateria": "drums.wav",
-                        "Baixo": "bass.wav",
-                        "Outros instrumentos": "other.wav",
-                    }
+                        wav_input = work / "entrada_convertida.wav"
 
-                    mix = None
-                    sr = None
+                        run_command([
+                            ffmpeg_exe,
+                            "-hide_banner", "-loglevel", "error", "-y",
+                            "-i", str(original),
+                            "-vn", "-ac", "2", "-ar", "44100",
+                            "-c:a", "pcm_s16le", str(wav_input),
+                        ])
 
-                    for instrumento, arquivo in nomes.items():
-                        if manter[instrumento]:
+                        # Separa voz, bateria, baixo e outros instrumentos.
+                        separated_dir = work / "separado"
+                        env = os.environ.copy()
+
+                        run_command([
+                            sys.executable, "-m", "demucs",
+                            "-n", "htdemucs",
+                            "--device", "cpu",
+                            "--shifts", "1",
+                            "--overlap", "0.1",
+                            "--out", str(separated_dir),
+                            str(wav_input),
+                        ], env=env)
+
+                        stems_dir = (
+                            separated_dir / "htdemucs" / wav_input.stem
+                        )
+
+                        nomes = {
+                            "Voz": "vocals.wav",
+                            "Bateria": "drums.wav",
+                            "Baixo": "bass.wav",
+                            "Outros instrumentos": "other.wav",
+                        }
+
+                        mix = None
+                        sr = 44100
+
+                        for nome, arquivo in nomes.items():
+                            if not manter[nome]:
+                                continue
+
                             caminho = stems_dir / arquivo
-
                             if not caminho.exists():
                                 raise RuntimeError(
                                     f"Não encontrei a faixa {arquivo}"
                                 )
 
                             audio, taxa = sf.read(
-                                caminho, dtype="float32", always_2d=True
+                                caminho,
+                                dtype="float32",
+                                always_2d=True,
                             )
 
-                            if mix is None:
-                                mix = audio * volumes[instrumento]
-                                sr = taxa
-                            else:
-                                tamanho = min(len(mix), len(audio))
-                                mix = mix[:tamanho] + (
-                                    audio[:tamanho] * volumes[instrumento]
+                            if taxa != sr:
+                                raise RuntimeError(
+                                    "As faixas separadas têm taxas de "
+                                    "amostragem diferentes."
                                 )
 
-                    if mix is None:
-                        raise RuntimeError(
-                            "Selecione pelo menos um instrumento para manter."
+                            if mix is None:
+                                mix = audio * volumes[nome]
+                            else:
+                                tamanho = min(len(mix), len(audio))
+                                mix = (
+                                    mix[:tamanho]
+                                    + audio[:tamanho] * volumes[nome]
+                                )
+
+                        if mix is None:
+                            raise RuntimeError(
+                                "Selecione pelo menos um instrumento."
+                            )
+
+                        # Converte o instrumento adicional e o posiciona.
+                        if instrumento_extra is not None:
+                            ext_suffix = (
+                                Path(instrumento_extra.name).suffix.lower()
+                                or ".audio"
+                            )
+                            extra_original = work / f"instrumento{ext_suffix}"
+                            extra_original.write_bytes(
+                                instrumento_extra.getvalue()
+                            )
+
+                            extra_wav = work / "instrumento_convertido.wav"
+
+                            run_command([
+                                ffmpeg_exe,
+                                "-hide_banner", "-loglevel", "error", "-y",
+                                "-i", str(extra_original),
+                                "-vn", "-ac", "2", "-ar", str(sr),
+                                "-c:a", "pcm_s16le", str(extra_wav),
+                            ])
+
+                            extra_audio, extra_sr = sf.read(
+                                extra_wav,
+                                dtype="float32",
+                                always_2d=True,
+                            )
+
+                            if extra_sr != sr:
+                                raise RuntimeError(
+                                    "Não foi possível padronizar o áudio "
+                                    "do instrumento adicional."
+                                )
+
+                            deslocamento = int(inicio_extra * sr)
+                            tamanho_final = max(
+                                len(mix),
+                                deslocamento + len(extra_audio),
+                            )
+
+                            # Aumenta a duração se o instrumento terminar
+                            # depois da música principal.
+                            mix_com_extra = np.zeros(
+                                (tamanho_final, 2), dtype=np.float32
+                            )
+                            mix_com_extra[:len(mix)] += mix
+
+                            fim_extra = deslocamento + len(extra_audio)
+                            mix_com_extra[deslocamento:fim_extra] += (
+                                extra_audio * volume_extra
+                            )
+
+                            mix = mix_com_extra
+
+                        # Evita clipping no arquivo final.
+                        peak = (
+                            float(np.max(np.abs(mix))) if mix.size else 0.0
+                        )
+                        if peak > 0.99:
+                            mix *= 0.99 / peak
+
+                        output_path = work / "Meu_Playback_Final.wav"
+                        sf.write(output_path, mix, sr, subtype="PCM_16")
+                        audio_bytes = output_path.read_bytes()
+
+                        st.success("Playback criado com sucesso!")
+                        st.audio(audio_bytes, format="audio/wav")
+                        st.download_button(
+                            "⬇️ Baixar playback final",
+                            data=audio_bytes,
+                            file_name="Meu_Playback_Final.wav",
+                            mime="audio/wav",
                         )
 
-                    peak = float(np.max(np.abs(mix))) if mix.size else 0.0
-
-                    if peak > 0.99:
-                        mix *= 0.99 / peak
-
-                    output_path = work / "Meu_Playback_sem_bateria.wav"
-                    sf.write(output_path, mix, sr, subtype="PCM_16")
-                    audio_bytes = output_path.read_bytes()
-                    st.success("Pronto! A versão sem bateria foi criada.")
-                    st.audio(audio_bytes, format="audio/wav")
-                    st.download_button(
-                        "⬇️ Baixar playback sem bateria",
-                        data=audio_bytes,
-                        file_name="Meu_Playback_sem_bateria.wav",
-                        mime="audio/wav",
+                except subprocess.TimeoutExpired:
+                    st.error(
+                        "O processamento passou de 30 minutos. "
+                        "Tente usar trechos menores."
                     )
-            except subprocess.TimeoutExpired:
-                st.error("O processamento passou de 30 minutos. Tente um trecho menor.")
-            except Exception as exc:
-                st.error("Não foi possível processar esse áudio.")
-                with st.expander("Ver detalhes técnicos do erro"):
-                    st.code(str(exc))
-                st.caption("Se o erro mencionar memória ou recursos, tente um trecho menor. A hospedagem gratuita tem limites.")
+                except Exception as exc:
+                    st.error("Não foi possível processar esse áudio.")
+                    with st.expander("Ver detalhes técnicos do erro"):
+                        st.code(str(exc))
+                    st.caption(
+                        "Se o erro mencionar memória ou recursos, "
+                        "tente um trecho menor. A hospedagem gratuita "
+                        "tem limites."
+                    )
