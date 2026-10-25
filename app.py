@@ -100,7 +100,7 @@ font-size: 1.8rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
-</CodeBlock>
+
 
 st.markdown("""
 <div style="
