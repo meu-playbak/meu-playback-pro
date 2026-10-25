@@ -22,7 +22,27 @@ st.write("Envie uma música para criar uma versão sem bateria.")
 st.info("Para ajudar o servidor gratuito, teste primeiro com um trecho de 1 a 3 minutos. Músicas longas podem demorar ou atingir os limites da hospedagem.")
 
 uploaded = st.file_uploader("Escolha um arquivo de áudio", type=["mp3", "wav", "flac", "m4a", "ogg", "aac"])
+st.subheader("🎚️ Escolha os instrumentos")
 
+manter = {
+    "Voz": st.checkbox("Manter voz", value=True),
+    "Bateria": st.checkbox("Manter bateria", value=False),
+    "Baixo": st.checkbox("Manter baixo", value=True),
+    "Outros instrumentos": st.checkbox(
+        "Manter outros instrumentos", value=True
+    ),
+}
+
+st.subheader("🔊 Volume de cada instrumento")
+
+volumes = {
+    "Voz": st.slider("Volume da voz", 0.0, 2.0, 1.0, 0.1),
+    "Bateria": st.slider("Volume da bateria", 0.0, 2.0, 1.0, 0.1),
+    "Baixo": st.slider("Volume do baixo", 0.0, 2.0, 1.0, 0.1),
+    "Outros instrumentos": st.slider(
+        "Volume dos outros instrumentos", 0.0, 2.0, 1.0, 0.1
+    ),
+}
 
 def run_command(command, env=None):
     result = subprocess.run(
@@ -68,20 +88,49 @@ if uploaded is not None:
                         str(wav_input),
                     ], env=env)
 
-                    stems_dir = separated_dir / "htdemucs" / wav_input.stem
-                    stems = [stems_dir / name for name in ("vocals.wav", "bass.wav", "other.wav")]
-                    missing = [p.name for p in stems if not p.exists()]
-                    if missing:
-                        raise RuntimeError("Não encontrei as faixas: " + ", ".join(missing))
+                   stems_dir = separated_dir / "htdemucs" / wav_input.stem
 
-                    vocals, sr = sf.read(stems[0], dtype="float32", always_2d=True)
-                    bass, _ = sf.read(stems[1], dtype="float32", always_2d=True)
-                    other, _ = sf.read(stems[2], dtype="float32", always_2d=True)
-                    length = min(len(vocals), len(bass), len(other))
-                    mix = vocals[:length] + bass[:length] + other[:length]
-                    peak = float(np.max(np.abs(mix))) if mix.size else 0.0
-                    if peak > 0.99:
-                        mix *= 0.99 / peak
+nomes = {
+    "Voz": "vocals.wav",
+    "Bateria": "drums.wav",
+    "Baixo": "bass.wav",
+    "Outros instrumentos": "other.wav",
+}
+
+mix = None
+sr = None
+
+for instrumento, arquivo in nomes.items():
+    if manter[instrumento]:
+        caminho = stems_dir / arquivo
+
+        if not caminho.exists():
+            raise RuntimeError(
+                f"Não encontrei a faixa {arquivo}"
+            )
+
+        audio, taxa = sf.read(
+            caminho, dtype="float32", always_2d=True
+        )
+
+        if mix is None:
+            mix = audio * volumes[instrumento]
+            sr = taxa
+        else:
+            tamanho = min(len(mix), len(audio))
+            mix = mix[:tamanho] + (
+                audio[:tamanho] * volumes[instrumento]
+            )
+
+if mix is None:
+    raise RuntimeError(
+        "Selecione pelo menos um instrumento para manter."
+    )
+
+peak = float(np.max(np.abs(mix))) if mix.size else 0.0
+
+if peak > 0.99:
+    mix *= 0.99 / peak
 
                     output_path = work / "Meu_Playback_sem_bateria.wav"
                     sf.write(output_path, mix, sr, subtype="PCM_16")
