@@ -165,7 +165,7 @@ volumes = {
     ),
 }
 
-st.subheader("🎸 Adicionar outro instrumento")
+st.markdown("### 🎸 3. Adicione outro instrumento")
 
 instrumento_extra = st.file_uploader(
     "Envie o áudio do instrumento adicional (opcional)",
