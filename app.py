@@ -21,7 +21,7 @@ st.set_page_config(
     page_icon="🎵",
     layout="centered",
 )
-<CodeBlock language="python" editable>
+
 st.markdown("""
 <style>
 /* Fundo e largura da página */
