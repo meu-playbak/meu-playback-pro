@@ -32,7 +32,7 @@ def run_command(command):
         raise RuntimeError(details)
     return result
 
-if uploaded is not None:
+
 if shutil.which("ffmpeg") is None:
     st.error("FFmpeg não foi instalado no servidor.")
     st.write("PATH:", os.environ.get("PATH", ""))
