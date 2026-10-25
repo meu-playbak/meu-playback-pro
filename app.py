@@ -33,13 +33,11 @@ def run_command(command):
     return result
 
 if uploaded is not None:
-
-if shutil.which("ffmpeg") is None:
+    shutil.which("ffmpeg") is None:
     st.error("FFmpeg não foi instalado no servidor.")
     st.write("PATH:", os.environ.get("PATH", ""))
     st.stop()
-
-    if st.button("Remover bateria", type="primary"):
+    st.button("Remover bateria", type="primary"):
         with st.spinner("Preparando o áudio e separando os instrumentos. Isso pode levar alguns minutos..."):
             try:
                 with tempfile.TemporaryDirectory(prefix="meu_playback_") as temp_name:
