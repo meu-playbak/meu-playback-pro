@@ -88,49 +88,49 @@ if uploaded is not None:
                         str(wav_input),
                     ], env=env)
 
-                   stems_dir = separated_dir / "htdemucs" / wav_input.stem
+                                       stems_dir = separated_dir / "htdemucs" / wav_input.stem
 
-nomes = {
-    "Voz": "vocals.wav",
-    "Bateria": "drums.wav",
-    "Baixo": "bass.wav",
-    "Outros instrumentos": "other.wav",
-}
+                    nomes = {
+                        "Voz": "vocals.wav",
+                        "Bateria": "drums.wav",
+                        "Baixo": "bass.wav",
+                        "Outros instrumentos": "other.wav",
+                    }
 
-mix = None
-sr = None
+                    mix = None
+                    sr = None
 
-for instrumento, arquivo in nomes.items():
-    if manter[instrumento]:
-        caminho = stems_dir / arquivo
+                    for instrumento, arquivo in nomes.items():
+                        if manter[instrumento]:
+                            caminho = stems_dir / arquivo
 
-        if not caminho.exists():
-            raise RuntimeError(
-                f"Não encontrei a faixa {arquivo}"
-            )
+                            if not caminho.exists():
+                                raise RuntimeError(
+                                    f"Não encontrei a faixa {arquivo}"
+                                )
 
-        audio, taxa = sf.read(
-            caminho, dtype="float32", always_2d=True
-        )
+                            audio, taxa = sf.read(
+                                caminho, dtype="float32", always_2d=True
+                            )
 
-        if mix is None:
-            mix = audio * volumes[instrumento]
-            sr = taxa
-        else:
-            tamanho = min(len(mix), len(audio))
-            mix = mix[:tamanho] + (
-                audio[:tamanho] * volumes[instrumento]
-            )
+                            if mix is None:
+                                mix = audio * volumes[instrumento]
+                                sr = taxa
+                            else:
+                                tamanho = min(len(mix), len(audio))
+                                mix = mix[:tamanho] + (
+                                    audio[:tamanho] * volumes[instrumento]
+                                )
 
-if mix is None:
-    raise RuntimeError(
-        "Selecione pelo menos um instrumento para manter."
-    )
+                    if mix is None:
+                        raise RuntimeError(
+                            "Selecione pelo menos um instrumento para manter."
+                        )
 
-peak = float(np.max(np.abs(mix))) if mix.size else 0.0
+                    peak = float(np.max(np.abs(mix))) if mix.size else 0.0
 
-if peak > 0.99:
-    mix *= 0.99 / peak
+                    if peak > 0.99:
+                        mix *= 0.99 / peak
 
                     output_path = work / "Meu_Playback_sem_bateria.wav"
                     sf.write(output_path, mix, sr, subtype="PCM_16")
