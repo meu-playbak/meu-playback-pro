@@ -40,6 +40,7 @@ if uploaded is not None:
                         sys.executable, "-m", "demucs",
                         "-n", "htdemucs",
                         "--device", "cpu",
+                        "--segment", "5",
                         "--out", str(out_dir),
                         str(input_path),
                     ]
