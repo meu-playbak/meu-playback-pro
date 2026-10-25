@@ -143,7 +143,7 @@ uploaded = st.file_uploader(
     key="musica_principal",
 )
 
-st.subheader("🎚️ Escolha os instrumentos que deseja manter")
+st.markdown("### 🎚️ 1. Escolha os instrumentos")
 
 manter = {
     "Voz": st.checkbox("Manter voz", value=True),
@@ -154,7 +154,7 @@ manter = {
     ),
 }
 
-st.subheader("🔊 Volume de cada instrumento")
+st.markdown("### 🔊 2. Ajuste os volumes")
 
 volumes = {
     "Voz": st.slider("Volume da voz", 0.0, 2.0, 1.0, 0.1),
