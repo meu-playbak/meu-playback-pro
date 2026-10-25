@@ -33,11 +33,12 @@ def run_command(command):
     return result
 
 if uploaded is not None:
-    if shutil.which("ffmpeg") is None:
+
+if shutil.which("ffmpeg") is None:
     st.error("FFmpeg não foi instalado no servidor.")
     st.write("PATH:", os.environ.get("PATH", ""))
     st.stop()
-    st.audio(uploaded)
+
     if st.button("Remover bateria", type="primary"):
         with st.spinner("Preparando o áudio e separando os instrumentos. Isso pode levar alguns minutos..."):
             try:
