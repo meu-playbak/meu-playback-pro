@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -34,7 +35,7 @@ if uploaded is not None:
                     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                     run_command([ffmpeg_exe, "-hide_banner", "-loglevel", "error", "-y", "-i", str(original), "-vn", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", str(wav_input)])
                     separated_dir = work / "separado"
-                    run_command(["python", "-m", "demucs", "-n", "htdemucs", "--device", "cpu", "--out", str(separated_dir), str(wav_input)])
+                    run_command([sys.executable, "-m", "demucs", "-n", "htdemucs", "--device", "cpu", "--out", str(separated_dir), str(wav_input)])
                     stems_dir = separated_dir / "htdemucs" / wav_input.stem
                     stems = [stems_dir / name for name in ("vocals.wav", "bass.wav", "other.wav")]
                     missing = [p.name for p in stems if not p.exists()]
